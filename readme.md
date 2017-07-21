@@ -2,15 +2,19 @@
 Paper Link:[Deep Rotation Equivirant Network](https://arxiv.org/abs/1705.08623)
 [DREN Caffe version](https://github.com/microljy/DREN)
 ## Usage
-### installation TensorFlow
-Note that this code work in TensorFlow_1.0.0. TensorFlow 0.12.0 is not supported.
+### Requirements
+- Install [TensorFlow 1.0.0](https://www.tensorflow.org/). Note that TensorFlow 0.12.0 is not supported.
+- Install matlab.
+
+You can install TensorFlow 1.0.0, by tapping following commands.
 
 	export TF_BINARY_URL=https://storage.googleapis.com/tensorflow/linux/gpu/tensorflow_gpu-1.0.0-cp27-none-linux_x86_64.whl
 
 	pip install --upgrade $TF_BINARY_URL
-### rmnist
-#### data
-Down load data, and transform it into npy.
+
+### Rotated-Mnist
+#### Data
+First, download the data and do preprocessing.
 
 	cd DREN_ROOT/data/rmnist
 	sh get_data.sh
@@ -18,21 +22,30 @@ Down load data, and transform it into npy.
 	python generate_npy.py
 	rm data.mat
 
-#### train model
+#### Training
+You can train the model with this command.
 
-	python train_mnist.py
+	python train_rmnist.py --model [MODEL_NAME]
 
-#### results
-This is the results of this implementation. It can be boosted through fine tuning training params.
+```MODEL_NAME``` can be ```z2cnn```,```dren_z2cnn``` or ```dren_z2cnn_x4```.
+
+#### Testing
+You can test the model with this command.
+
+	python test_rmnist.py --model [MODEL_NAME] --pretrain [PRETRAIN_MODEL_PATH]
+
+When we use ```test_rmnist.py```, the dropout is disabled. So the results would be better than what the training program shows.
+
+This is the results of this implementation. For ```DREN_Z2CNN_x4```, more training epoches may boost the results.
 
 |model|error|
 |-
-|Z2CNN|5.94%|
-|DREN_Z2CNN|4.61%|
-|DREN_Z2CNN_x4|2.86%|
+|Z2CNN|4.58%|
+|DREN_Z2CNN|3.08%|
+|DREN_Z2CNN_x4|2.12%|
 
 ## Discussion
-DREN can be used to boost the performance of classification of aerial image, microscope images, CT images and so on.
+DREN can be used to boost the performance of classification of images that have rotation symmetry, such as aerial image, microscope images, CT images and so on. We have tested the DREN in lung nodule detection and found it helpful.
 
 ## Citation
 Please cite DREN in your publications if it helps your research:
