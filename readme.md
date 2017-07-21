@@ -28,14 +28,14 @@ You can train the model with this command.
 
 	python train_rmnist.py --model [MODEL_NAME]
 
-```MODEL_NAME``` can be ```z2cnn```,```dren_z2cnn``` or ```dren_z2cnn_x4```.
+The params ```MODEL_NAME``` could be ```z2cnn```,```dren_z2cnn``` or ```dren_z2cnn_x4```.
 
 #### Testing
 You can test the model with this command.
 
-	python test_rmnist.py --model [MODEL_NAME] --pretrain [PRETRAIN_MODEL_PATH]
+	python test_rmnist.py --model [MODEL_NAME] --trained_model [TRAINED_MODEL_PATH]
 
-When we use ```test_rmnist.py```, the dropout is disabled. So the results would be better than what the training program shows.
+When we use ```test_rmnist.py```, the dropout is disabled. So the results would be better than what the training program shows. The param ```TRAINED_MODEL_PATH``` is the model saved in ```./snapshot/```. For example, ```./snapshot/MODELPATH/final/model_final.ckpt```.
 
 This is the results of this implementation. For ```DREN_Z2CNN_x4```, more training epoches may boost the results.
 

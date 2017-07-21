@@ -11,7 +11,7 @@ import data_aug
 parser = argparse.ArgumentParser()
 parser.add_argument('--model', default='dren_z2cnn', type=str)
 parser.add_argument('--batch_size', default=128, type=int)
-parser.add_argument('--pretrain', default='snapshot/dren_z2cnn/final/model_final.ckpt', type=str)  
+parser.add_argument('--trained_model', default='snapshot/dren_z2cnn/final/model_final.ckpt', type=str)  
 parser.add_argument('--val_data_path', default='data/rmnist/test_data.npy', type=str)
 parser.add_argument('--gpu', default=3, type=int)
 args = parser.parse_args()
