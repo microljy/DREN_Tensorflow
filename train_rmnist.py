@@ -9,14 +9,15 @@ import data_aug
 
 ## Params
 parser = argparse.ArgumentParser()
-parser.add_argument('--model', default='z2cnn', type=str)
+parser.add_argument('--model', default='dren_z2cnn_x4', type=str)
 parser.add_argument('--batch_size', default=128, type=int)
-parser.add_argument('--display', default=300, type=int)
-parser.add_argument('--save_every', default=5, type=int)
-parser.add_argument('--epoch', default=300, type=int)
-parser.add_argument('--decay_epoch', default=200, type=int)
+parser.add_argument('--display', default=1000, type=int)
+parser.add_argument('--save_every', default=20, type=int)
+parser.add_argument('--val_every', default=10, type=int)
+parser.add_argument('--epoch', default=100, type=int)
+parser.add_argument('--decay_epoch', default=40, type=int)
 parser.add_argument('--begin_step', default=0, type=int)
-parser.add_argument('--lr', default=1e-3, type=float)
+parser.add_argument('--lr', default=1e-2, type=float)
 parser.add_argument('--pretrain', default=None, type=str)
 parser.add_argument('--shuffle', default=False, type=bool)    
 parser.add_argument('--show', default=False, type=bool)
@@ -51,11 +52,13 @@ if args.model=='dren_z2cnn':
 	import models.dren_z2cnn as model
 elif args.model=='dren_resnet20':
 	import models.dren_resnet20 as model
+elif args.model=='dren_z2cnn_x4':
+	import models.dren_z2cnn_x4 as model
 elif args.model=='z2cnn':
 	import models.z2cnn as model
 else:
-	print 'no corresponding model'
-	import models.res3d20 as model
+	print 'no corresponding model, import z2cnn'
+	import models.z2cnn as model
 
 savePath = './snapshot/save_'+ args.model + '_' + time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()) + '/'
 if not os.path.exists(savePath):
@@ -77,6 +80,7 @@ batch_size = args.batch_size # batch_size <=4 , for memory constrain
 display = args.display
 hm_epochs = args.epoch
 save_every = args.save_every
+val_every = args.val_every
 num_classes = 10
 ## load data    
 logging.info( 'loading data from '+ args.train_data_path)
@@ -117,7 +121,7 @@ def train_neural_network(x):
     num_decay_steps=train_len/batch_size*args.decay_epoch
     learning_rate=tf.train.exponential_decay(args.lr, global_step-args.begin_step, num_decay_steps, 0.1, staircase=True)
     logging.info( 'learning_rate_decay: num_decay_steps:%d'%num_decay_steps)
-    base_optimizer = tf.train.AdamOptimizer(learning_rate).minimize(loss,global_step=global_step)
+    base_optimizer = tf.train.AdamOptimizer(learning_rate,epsilon=1e-4).minimize(loss,global_step=global_step)
     
     UPDATE_OPS_COLLECTION = 'resnet_update_ops'
     batchnorm_updates = tf.get_collection(UPDATE_OPS_COLLECTION)
@@ -154,15 +158,16 @@ def train_neural_network(x):
                     logging.info('['+time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+']TRAINING:Epoch:%d;Display:%d;Loss:%.4f;accuarcy:%.4f;learning_rate:'%(epoch+1, iters / display + 1,epoch_loss / (iters+1),accuracy_num / (iters+1))+str(learning_rate.eval()))
 
             ## Validation
-            accuracy_num=0
-            num=validation_data.shape[0]/batch_size
-            epoch_loss=0
-            for iters in range(0,validation_data.shape[0]/batch_size):                  
-                X,Y=get_normalized_data(iters,batch_size,validation_data,test_aug_params,0)
-                c, a, pred = sess.run([loss,accuracy,prediction], feed_dict={x: X, y: Y})                   
-                epoch_loss += c
-                accuracy_num += a/batch_size
-            logging.info('['+time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+']VALIDATION: Epoch:%d;Loss:%.4f;accuarcy:%.4f'%(epoch+1,epoch_loss / num,accuracy_num / num))
+            if (epoch + 1) % val_every==0:
+                accuracy_num=0
+                num=validation_data.shape[0]/batch_size
+                epoch_loss=0
+                for iters in range(0,validation_data.shape[0]/batch_size):                  
+                    X,Y=get_normalized_data(iters,batch_size,validation_data,test_aug_params,0)
+                    c, a, pred = sess.run([loss,accuracy,prediction], feed_dict={x: X, y: Y})                   
+                    epoch_loss += c
+                    accuracy_num += a/batch_size
+                logging.info('['+time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())+']VALIDATION: Epoch:%d;Loss:%.4f;accuarcy:%.4f'%(epoch+1,epoch_loss / num,accuracy_num / num))
 
             #save
             if (epoch + 1) % args.save_every==0:

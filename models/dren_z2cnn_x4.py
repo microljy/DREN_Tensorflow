@@ -12,13 +12,8 @@ CONV_WEIGHT_DECAY = 0.0001
 RESNET_VARIABLES = 'resnet_variables'
 UPDATE_OPS_COLLECTION = 'resnet_update_ops'  # must be grouped with training op
 keep_prob = 0.9
-#tf.app.flags.DEFINE_integer('input_size', 224, "input image size")
-
-
 activation = tf.nn.relu
 
-
-#logits = inference_small(images,is_training=True)
 
 
 def inference_small(x,
@@ -42,39 +37,45 @@ def inference_small_config(x, c):
     c['stack_stride'] = 1
     c['padding'] = 'VALID'
     c['reuse'] = None
-    c['conv_filters_out'] = 20
-    c['conv_mode'] = 'normal'
-    with tf.variable_scope('conv0',reuse=c['reuse']):   
+    c['conv_filters_out'] = 40
+    with tf.variable_scope('conv0',reuse=c['reuse']):
+        c['conv_mode'] = 'cycle'
         print 'x:',x.get_shape()        
         x0 = activation(bn(conv(x, c),c))
         x0 = control_flow_ops.cond(c['is_training'], lambda: tf.nn.dropout(x0,keep_prob),lambda: x0)
         print 'x0:',x0.get_shape()       
     
-    with tf.variable_scope('conv1',reuse=c['reuse']):   
+    with tf.variable_scope('conv1',reuse=c['reuse']):
+        c['conv_mode'] = 'isotonic'     
         x1 = activation(bn(conv(x0, c),c))            
         x1=_max_pool(x1, ksize=3, stride=2)
         print 'x1:',x1.get_shape()
         
-    with tf.variable_scope('conv2',reuse=c['reuse']):    
-        x2 = activation(bn(conv(x1, c),c)) 
+    with tf.variable_scope('conv2',reuse=c['reuse']):
+        c['conv_mode'] = 'isotonic'     
+        x2 = activation(bn(conv(x1, c),c))       
         x2 = control_flow_ops.cond(c['is_training'], lambda: tf.nn.dropout(x2,keep_prob),lambda: x2)
         print 'x2:',x2.get_shape()
-    with tf.variable_scope('conv3',reuse=c['reuse']):     
-        x3 = activation(bn(conv(x2, c),c))      
+    with tf.variable_scope('conv3',reuse=c['reuse']):
+        c['conv_mode'] = 'isotonic'     
+        x3 = activation(bn(conv(x2, c),c))       
         x3 = control_flow_ops.cond(c['is_training'], lambda: tf.nn.dropout(x3,keep_prob),lambda: x3)
         print 'x3:',x3.get_shape()
-    with tf.variable_scope('conv4',reuse=c['reuse']):   
-        x4 = activation(bn(conv(x3, c),c))  
+    with tf.variable_scope('conv4',reuse=c['reuse']):
+        c['conv_mode'] = 'isotonic'     
+        x4 = activation(bn(conv(x3, c),c))       
         x4 = control_flow_ops.cond(c['is_training'], lambda: tf.nn.dropout(x4,keep_prob),lambda: x4)
         print 'x4:',x4.get_shape()
-    with tf.variable_scope('conv5',reuse=c['reuse']):    
-        x5 = activation(bn(conv(x4, c),c))
+    with tf.variable_scope('conv5',reuse=c['reuse']):
+        c['conv_mode'] = 'isotonic'     
+        x5 = activation(bn(conv(x4, c),c))     
         x5 = control_flow_ops.cond(c['is_training'], lambda: tf.nn.dropout(x5,keep_prob),lambda: x5)
         print 'x5:',x5.get_shape()
     with tf.variable_scope('conv6',reuse=c['reuse']):
-        c['conv_filters_out'] = c['num_classes']    
+        c['conv_filters_out'] = c['num_classes'] 
+        c['conv_mode'] = 'decycle'     
         c['ksize'] = 4
-        x6 = conv(x5, c)    
+        x6 = conv(x5, c) 
         print 'x6:',x6.get_shape()
         out = tf.reduce_mean(x6,[1,2])
         print 'out:',out.get_shape() 
@@ -295,6 +296,7 @@ def get_dren_weight(shape, mode):
         std=1/math.sqrt(shape[0]*shape[1]*shape[2])/2
     else:
         std=1/math.sqrt(shape[0]*shape[1]*shape[2])
+    #std = 0.02
     initializer = tf.random_normal_initializer(stddev=std)  
     if mode == 'normal':
         weight = _get_variable('weights',
@@ -445,10 +447,21 @@ def crop_concate(x1,x2):
 
 
 if __name__=='__main__':
-    shape= [3,3,1,1]
+    shape= [3,3,2,2]
     a=get_dren_weight(shape,'isotonic')
     #a=get_dren_weight(shape,'cycle')
     config = tf.ConfigProto()
-    with tf.Session(config=config) as sess:
-        sess.run(tf.global_variables_initializer())
-        print tf.transpose(a,[3,2,1,0]).eval()
+    sess = tf.Session(config=config)
+    sess.run(tf.global_variables_initializer())
+    print a.shape
+    #print tf.transpose(a,[3,2,1,0]).eval()
+    b=tf.transpose(a,[3,2,1,0]).eval(session=sess)
+    print b[0,0]
+    print b[2,2]
+    print b[4,4]
+    print b[6,6]
+    
+    print b[0,1]
+    print b[2,3]
+    print b[4,5]
+    print b[6,7]
