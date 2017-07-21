@@ -1,12 +1,13 @@
 # DREN_TensorFlow
 Paper Link:[Deep Rotation Equivirant Network](https://arxiv.org/abs/1705.08623)
-[DREN Caffe version](https://github.com/microljy/DREN)
+
+[Caffe version code](https://github.com/microljy/DREN)
 ## Usage
 ### Requirements
 - Install [TensorFlow 1.0.0](https://www.tensorflow.org/). Note that TensorFlow 0.12.0 is not supported.
 - Install matlab.
 
-You can install TensorFlow 1.0.0, by tapping following commands.
+You could install TensorFlow 1.0.0, by using the following commands.
 
 	export TF_BINARY_URL=https://storage.googleapis.com/tensorflow/linux/gpu/tensorflow_gpu-1.0.0-cp27-none-linux_x86_64.whl
 
@@ -38,11 +39,11 @@ When we use ```test_rmnist.py```, the dropout is disabled. So the results would 
 
 This is the results of this implementation. For ```DREN_Z2CNN_x4```, more training epoches may boost the results.
 
-|model|error|
-|-
-|Z2CNN|4.58%|
-|DREN_Z2CNN|3.08%|
-|DREN_Z2CNN_x4|2.12%|
+|model         |error |
+|--------------|------|
+|Z2CNN         |4.58% |
+|DREN_Z2CNN    |3.08% |
+|DREN_Z2CNN_x4 |2.12% |
 
 ## Discussion
 DREN can be used to boost the performance of classification of images that have rotation symmetry, such as aerial image, microscope images, CT images and so on. We have tested the DREN in lung nodule detection and found it helpful.
