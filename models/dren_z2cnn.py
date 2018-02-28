@@ -21,9 +21,7 @@ def inference_small(x,
                     use_bias=True, 
                     num_classes=1):
     c = Config()
-    c['is_training'] = tf.convert_to_tensor(is_training,
-                                            dtype='bool',
-                                            name='is_training')
+    c['is_training'] = is_training
     c['use_bias'] = use_bias
     c['num_classes'] = num_classes
     return inference_small_config(x, c)

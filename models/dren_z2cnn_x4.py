@@ -11,7 +11,7 @@ BN_EPSILON = 0.001
 CONV_WEIGHT_DECAY = 0.0001
 RESNET_VARIABLES = 'resnet_variables'
 UPDATE_OPS_COLLECTION = 'resnet_update_ops'  # must be grouped with training op
-keep_prob = 0.9
+keep_prob = 0.8
 activation = tf.nn.relu
 
 
@@ -21,9 +21,7 @@ def inference_small(x,
                     use_bias=True, 
                     num_classes=1):
     c = Config()
-    c['is_training'] = tf.convert_to_tensor(is_training,
-                                            dtype='bool',
-                                            name='is_training')
+    c['is_training'] = is_training
     c['use_bias'] = use_bias
     c['num_classes'] = num_classes
     return inference_small_config(x, c)

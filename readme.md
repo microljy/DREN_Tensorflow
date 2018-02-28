@@ -30,20 +30,38 @@ You can train the model with this command.
 
 The params ```MODEL_NAME``` could be ```z2cnn```,```dren_z2cnn``` or ```dren_z2cnn_x4```.
 
-#### Testing
-You can test the model with this command.
-
-	python test_rmnist.py --model [MODEL_NAME] --trained_model [TRAINED_MODEL_PATH]
-
-When we use ```test_rmnist.py```, the dropout is disabled. So the results would be better than what the training program shows. The param ```TRAINED_MODEL_PATH``` is the model saved in ```./snapshot/```. For example, ```./snapshot/MODELPATH/final/model_final.ckpt```.
-
-This is the results of this implementation. For ```DREN_Z2CNN_x4```, more training epoches may boost the results.
+#### Result
 
 |model         |error |
 |--------------|------|
 |Z2CNN         |4.58% |
 |DREN_Z2CNN    |3.08% |
-|DREN_Z2CNN_x4 |2.12% |
+|DREN_Z2CNN_x4 |**1.76%** |
+
+### Cifar-10
+#### Data
+First, download the data and do preprocessing.
+
+	cd data/cifar-10
+	wget http://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz
+	tar -zxvf cifar-10-python.tar.gz
+	rm cifar-10-python.tar.gz
+
+#### Training
+You can train the model with this command.
+
+	python train_rmnist.py --model [MODEL_NAME]
+
+The params ```MODEL_NAME``` could be ```resnet20```,```dren_resnet20_2b``` or ```dren_resnet20_2b_x4```.
+
+
+#### Result
+
+|model             |error |
+|------------------|------|
+|Resnet-20         |9.00% |
+|DREN_Resnet-20    |8.51% |
+|DREN_Resnet-20_x4 |**7.17%** |
 
 ## Discussion
 DREN can be used to boost the performance of classification of images that have rotation symmetry, such as aerial image, microscope images, CT images and so on. We have tested the DREN in lung nodule detection and found it helpful.

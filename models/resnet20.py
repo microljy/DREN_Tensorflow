@@ -8,7 +8,7 @@ from config import Config
 MOVING_AVERAGE_DECAY = 0.98
 BN_DECAY = MOVING_AVERAGE_DECAY
 BN_EPSILON = 0.001
-CONV_WEIGHT_DECAY = 0.0002
+CONV_WEIGHT_DECAY = 0.0001
 CONV_WEIGHT_STDDEV = 0.1
 RESNET_VARIABLES = 'resnet_variables'
 UPDATE_OPS_COLLECTION = 'resnet_update_ops'  # must be grouped with training op
@@ -21,6 +21,7 @@ activation = tf.nn.relu
 
 
 #logits = inference_small(images,is_training=True)
+
 def whiten(x):
     
     x_mean = tf.reduce_mean(x, axis=[1,2], keep_dims=True)
@@ -31,7 +32,7 @@ def whiten(x):
 def inference_small(x,
                     is_training,
                     use_bias=True, 
-                    num_classes=1):
+                    num_classes=10):
     c = Config()
     c['is_training'] = is_training
     c['use_bias'] = use_bias
@@ -53,14 +54,13 @@ def inference_small_config(x, c):
         c['conv_filters_out'] = 16
         c['block_filters_internal'] = 16
         c['num_blocks']=3
-        c['conv_mode'] = 'cycle'
         print 'x:',x.get_shape()
         
         x = conv(x, c)
         x = bn(x, c)
         x0 = activation(x)         
         print 'x0:',x0.get_shape()       
-        c['conv_mode'] = 'isotonic'
+        
         x1 = stack(x0, c)
         print 'x1:',x1.get_shape()
     
@@ -69,7 +69,7 @@ def inference_small_config(x, c):
         c['block_filters_internal'] = 32
         c['num_blocks']=3
         c['stack_stride'] = 2
-        c['conv_mode'] = 'isotonic'        
+        
         x1 = stack(x1, c)             
         
         print 'x1:',x1.get_shape()
@@ -79,7 +79,6 @@ def inference_small_config(x, c):
         c['block_filters_internal'] = 64
         c['num_blocks'] = 3
         c['stack_stride'] = 2
-        #c['conv_mode'] = 'isotonic'  
         x2 = stack(x1, c)
         #x2 = control_flow_ops.cond(c['is_training'], lambda: tf.nn.dropout(x2,keep_prob),lambda: x2)
         print 'x2:',x2.get_shape()
@@ -88,8 +87,8 @@ def inference_small_config(x, c):
         c['conv_filters_out'] = c['num_classes']
         c['ksize'] = 1
         c['stride'] = 1
-        #c['conv_mode'] = 'decycle'
         out = tf.reduce_mean(conv(x2, c),[1,2])
+        #out = fc(tf.reduce_mean(x,[1,2]),c)
         print 'out:',out.get_shape() 
 
     return out

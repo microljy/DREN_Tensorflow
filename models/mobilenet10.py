@@ -21,12 +21,7 @@ activation = tf.nn.relu
 
 
 #logits = inference_small(images,is_training=True)
-def whiten(x):
-    
-    x_mean = tf.reduce_mean(x, axis=[1,2], keep_dims=True)
-    x_std = tf.sqrt(tf.reduce_mean(tf.square(x-x_mean), axis=[1,2], keep_dims=True))
-    x = (x-x_mean) / x_std
-    return x
+
 
 def inference_small(x,
                     is_training,
@@ -48,49 +43,65 @@ def inference_small_config(x, c):
     c['padding'] = 'SAME'
     c['reuse'] = None
     c['conv_mode'] = 'normal'
-    x = whiten(x)
-    with tf.variable_scope('down_scale0',reuse=c['reuse']):
+    c['routing_rate'] = 1
+    with tf.variable_scope('conv0',reuse=c['reuse']):
         c['conv_filters_out'] = 16
-        c['block_filters_internal'] = 16
-        c['num_blocks']=3
-        c['conv_mode'] = 'cycle'
-        print 'x:',x.get_shape()
-        
+        print 'x:',x
         x = conv(x, c)
         x = bn(x, c)
-        x0 = activation(x)         
-        print 'x0:',x0.get_shape()       
-        c['conv_mode'] = 'isotonic'
-        x1 = stack(x0, c)
-        print 'x1:',x1.get_shape()
+        x = activation(x)
+        print 'x0:',x      
+        
     
-    with tf.variable_scope('down_scale1',reuse=c['reuse']):
-        c['bottleneck'] = False
-        c['block_filters_internal'] = 32
-        c['num_blocks']=3
-        c['stack_stride'] = 2
-        c['conv_mode'] = 'isotonic'        
-        x1 = stack(x1, c)             
+    with tf.variable_scope('s_conv1',reuse=c['reuse']):
+        c['conv_filters_out'] = 32
+        c['stride'] = 2
+        x = separable_conv_bn_act(x, c)            
+        print 'x1:',x
         
-        print 'x1:',x1.get_shape()
+    with tf.variable_scope('s_conv2',reuse=c['reuse']):
+        c['conv_filters_out'] = 32
+        c['stride'] = 1
+        x = separable_conv_bn_act(x, c)            
+        print 'x2:',x
+    with tf.variable_scope('s_conv3',reuse=c['reuse']):
+        c['conv_filters_out'] = 32
+        c['stride'] = 1
+        x = separable_conv_bn_act(x, c)            
+        print 'x3:',x
+    with tf.variable_scope('s_conv4',reuse=c['reuse']):
+        c['conv_filters_out'] = 32
+        c['stride'] = 1
+        x = separable_conv_bn_act(x, c)            
+        print 'x4:',x
         
-    with tf.variable_scope('down_scale2',reuse=c['reuse']):
-        c['bottleneck'] = False
-        c['block_filters_internal'] = 64
-        c['num_blocks'] = 3
-        c['stack_stride'] = 2
-        #c['conv_mode'] = 'isotonic'  
-        x2 = stack(x1, c)
-        #x2 = control_flow_ops.cond(c['is_training'], lambda: tf.nn.dropout(x2,keep_prob),lambda: x2)
-        print 'x2:',x2.get_shape()
+    with tf.variable_scope('s_conv5',reuse=c['reuse']):
+        c['conv_filters_out'] = 64
+        c['stride'] = 2
+        x = separable_conv_bn_act(x, c)            
+        print 'x5:',x
+    with tf.variable_scope('s_conv6',reuse=c['reuse']):
+        c['conv_filters_out'] = 64
+        c['stride'] = 1
+        x = separable_conv_bn_act(x, c)            
+        print 'x6:',x
+    with tf.variable_scope('s_conv7',reuse=c['reuse']):
+        c['conv_filters_out'] = 64
+        c['stride'] = 1
+        x = separable_conv_bn_act(x, c)            
+        print 'x7:',x
+    with tf.variable_scope('s_conv8',reuse=c['reuse']):
+        c['conv_filters_out'] = 64
+        c['stride'] = 1
+        x = separable_conv_bn_act(x, c)            
+        print 'x8:',x
        
     with tf.variable_scope('output',reuse=c['reuse']):
         c['conv_filters_out'] = c['num_classes']
         c['ksize'] = 1
         c['stride'] = 1
-        #c['conv_mode'] = 'decycle'
-        out = tf.reduce_mean(conv(x2, c),[1,2])
-        print 'out:',out.get_shape() 
+        out = tf.reduce_mean(conv(x, c),[1,2])
+        print 'out:',out
 
     return out
 
@@ -169,73 +180,6 @@ def block(x, c):
             #print shortcut.get_shape()
     return activation(x + shortcut)
 
-
-def block_pre_act(x, c):
-    filters_in = x.get_shape()[-1]
-
-    # Note: filters_out isn't how many filters are outputed. 
-    # That is the case when bottleneck=False but when bottleneck is 
-    # True, filters_internal*4 filters are outputted. filters_internal is how many filters
-    # the 3x3 convs output internally.
-    # m = 4 if c['bottleneck'] else 1
-    m = 1
-    filters_out = m * c['block_filters_internal']
-
-    shortcut = x  # branch 1
-
-    c['conv_filters_out'] = c['block_filters_internal']
-
-    if c['bottleneck']:
-        with tf.variable_scope('a',reuse=c['reuse']):
-            c['ksize'] = 1
-            c['stride'] = c['block_stride']
-            x = bn(x, c)
-            x = activation(x)
-            x = conv(x, c)
-
-        with tf.variable_scope('b',reuse=c['reuse']): 
-            c['conv_filters_out'] = filters_out
-            c['ksize'] = 3
-            x = bn(x, c)
-            x = activation(x)
-            x = conv(x, c)
-
-        with tf.variable_scope('c',reuse=c['reuse']):
-            c['conv_filters_out'] = filters_out
-            c['ksize'] = 1
-            assert c['stride'] == 1
-            x = bn(x, c)
-            x = activation(x)
-            x = conv(x, c)
-    else:
-        with tf.variable_scope('A',reuse=c['reuse']):
-            c['stride'] = c['block_stride']
-            assert c['ksize'] == 3
-            x = bn(x, c)
-            x = activation(x)
-            x = conv(x, c)
-
-        with tf.variable_scope('B',reuse=c['reuse']):
-            c['conv_filters_out'] = filters_out
-            assert c['ksize'] == 3
-            assert c['stride'] == 1
-            x = bn(x, c)
-            x = activation(x)
-            x = conv(x, c)
-
-    with tf.variable_scope('shortcut',reuse=c['reuse']):
-        if filters_out != filters_in or c['block_stride'] != 1:
-            c['ksize'] = 3+2*(c['block_stride']-1)
-            c['stride'] = c['block_stride']
-            c['conv_filters_out'] = filters_out
-            shortcut = conv(shortcut, c)
-            shortcut = bn(shortcut, c)
-        else:
-            shortcut = crop(shortcut,x) ## cut
-            #print shortcut.get_shape()
-    return x + shortcut
-
-
 def bn(x, c):
     x_shape = x.get_shape()
     params_shape = x_shape[-1:]
@@ -280,6 +224,7 @@ def bn(x, c):
         c['is_training'], lambda: (mean, variance),
         lambda: (moving_mean, moving_variance))
     x = tf.nn.batch_normalization(x, mean, variance, beta, gamma, BN_EPSILON)
+    x = x - variance
     #x.set_shape(inputs.get_shape()) ??
 
     return x
@@ -362,10 +307,13 @@ def weight_rot(weight, rot):
 def get_dren_weight(shape, mode):
     if mode == 'decycle' or mode == 'isotonic':
         std=1/math.sqrt(shape[0]*shape[1]*shape[2])/2
+    elif mode == 'depthwise':
+        std=1/math.sqrt(shape[0]*shape[1])
     else:
         std=1/math.sqrt(shape[0]*shape[1]*shape[2])
+    
     initializer = tf.random_normal_initializer(stddev=std)  
-    if mode == 'normal':
+    if mode == 'normal' or mode == 'depthwise':
         weight = _get_variable('weights',
                                 shape=shape,
                                 dtype='float',
@@ -414,6 +362,7 @@ def get_dren_weight(shape, mode):
             return tf.concat([weight0,weight1,weight2,weight3],3)
         elif mode == 'decycle':
             return tf.concat([weight0,weight1,weight2,weight3],2)
+        
 def conv(x, c):
     ksize = c['ksize']
     stride = c['stride']
@@ -446,40 +395,76 @@ def conv(x, c):
         return x + bias
     else:
         return x
-
-
-def conv_transpose(x, c):
+    
+def my_separable_conv2d(x,depthwise_filter,pointwise_filter,strides,padding,c):
+    if c['routing_rate'] < 1 and c['routing_rate'] > 0:
+        filters_in = x.get_shape()[-1]
+        channel_sum = tf.reduce_sum(x,[1,2],keep_dims = True)
+        k = int(float(filters_in)*(1-c['routing_rate']))
+        value,indices = tf.nn.top_k(channel_sum, k = k)
+        x = x * tf.cast(tf.greater(channel_sum-tf.reduce_min(value,3,keep_dims=True),0),tf.float32)
+        
+    x = tf.nn.depthwise_conv2d(x,depthwise_filter, strides, padding)
+    
+    x = tf.nn.conv2d(x,pointwise_filter, [1, 1, 1, 1], padding)
+    
+    return x
+    
+    
+def separable_conv(x, c):
     ksize = c['ksize']
     stride = c['stride']
+    strides = [1,stride,stride,1]
     filters_out = c['conv_filters_out']
+
     filters_in = x.get_shape()[-1]
     try:
         a=int(filters_in)
     except:
         filters_in=1
-    shape = [ksize, ksize, filters_out, filters_in]
-
-    std=1/math.sqrt(ksize*ksize*int(filters_in))
-
-    initializer = tf.truncated_normal_initializer(stddev=std)
-
-    weights = _get_variable('weights',
-                            shape=shape,
-                            dtype='float',
-                            initializer=initializer,
-                            weight_decay=CONV_WEIGHT_DECAY)
-
+        
+    filters_in = int(filters_in)
+    filters_out = int(filters_out)
+    
+    if c['conv_mode'] == 'normal':
+        shape = [ksize, ksize, filters_in, filters_out]
+    elif c['conv_mode'] == 'cycle':
+        shape = [ksize, ksize, filters_in, filters_out / 4]
+    elif c['conv_mode'] == 'isotonic':
+        shape = [ksize, ksize, filters_in / 4, filters_out / 4]
+    elif c['conv_mode'] == 'decycle':
+        shape = [ksize, ksize, filters_in / 4, filters_out]
+    
+    shape = [ksize, ksize, filters_in, 1]
+    
+    depthwise_filter = get_dren_weight(shape, 'depthwise')
+    
+    shape = [1, 1, filters_in, filters_out]
+    
+    pointwise_filter = get_dren_weight(shape, c['conv_mode'])
+    
+    # depthwise_filter:  [filter_height, filter_width, in_channels, channel_multiplier]
+    # pointwise_filter:  [1, 1, channel_multiplier * in_channels, out_channels]
+    
+    #x = tf.nn.separable_conv2d(x,depthwise_filter,pointwise_filter,strides,c['padding'])
+    x = my_separable_conv2d(x,depthwise_filter,pointwise_filter,strides,c['padding'],c)
+    
     x_shape = x.get_shape()
-    
-    output_shape = tf.stack([x_shape[0],x_shape[1]*stride,x_shape[2]*stride,int(filters_out)])
-    x=tf.nn.conv2d_transpose(x, weights, output_shape, [1, stride, stride, 1]) ##, padding='VALID' ??
-    
+    params_shape = x_shape[-1:]
+
     if c['use_bias']:
-        bias = _get_variable('bias', x.get_shape()[-1:],
+        bias = _get_variable('bias', params_shape,
                              initializer=tf.random_normal_initializer(stddev=0))
         return x + bias
     else:
         return x
+    
+def separable_conv_bn_act(x, c):
+    x = separable_conv(x, c)
+    x = bn(x, c)   
+    x = activation(x)   
+    return x
+
 
 def _max_pool(x, ksize=2, stride=2):
     return tf.nn.max_pool(x,

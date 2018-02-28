@@ -50,8 +50,8 @@ def inference_small_config(x, c):
     c['conv_mode'] = 'normal'
     x = whiten(x)
     with tf.variable_scope('down_scale0',reuse=c['reuse']):
-        c['conv_filters_out'] = 16
-        c['block_filters_internal'] = 16
+        c['conv_filters_out'] = 32
+        c['block_filters_internal'] = 32
         c['num_blocks']=3
         c['conv_mode'] = 'cycle'
         print 'x:',x.get_shape()
@@ -66,7 +66,7 @@ def inference_small_config(x, c):
     
     with tf.variable_scope('down_scale1',reuse=c['reuse']):
         c['bottleneck'] = False
-        c['block_filters_internal'] = 32
+        c['block_filters_internal'] = 64
         c['num_blocks']=3
         c['stack_stride'] = 2
         c['conv_mode'] = 'isotonic'        
