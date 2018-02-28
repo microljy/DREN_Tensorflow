@@ -1,19 +1,14 @@
 # DREN_TensorFlow
 Paper Link:[Deep Rotation Equivirant Network](https://arxiv.org/abs/1705.08623)
+![](img/framework.jpg)
 
-[Caffe version code](https://github.com/microljy/DREN)
+Caffe version code:[https://github.com/microljy/DREN](https://github.com/microljy/DREN)
 ## Usage
 ### Requirements
-- Install [TensorFlow 1.0.0](https://www.tensorflow.org/). Note that TensorFlow 0.12.0 is not supported.
-- Install matlab.
+- Install [TensorFlow](https://www.tensorflow.org/). Note that TensorFlow 0.12.0 is not supported.
+- Install matlab for preprocessing Rotated-MNIST.
 
-You could install TensorFlow 1.0.0, by using the following commands.
-
-	export TF_BINARY_URL=https://storage.googleapis.com/tensorflow/linux/gpu/tensorflow_gpu-1.0.0-cp27-none-linux_x86_64.whl
-
-	pip install --upgrade $TF_BINARY_URL
-
-### Rotated-Mnist
+### Rotated-MNIST
 #### Data
 First, download the data and do preprocessing.
 
